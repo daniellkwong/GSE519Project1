@@ -1,0 +1,183 @@
+---
+title: "Untitled"
+format: html
+editor: visual
+---
+
+## Load and Clean the data
+
+```{r}
+Housing <- read.csv("/Users/christopherli/Downloads/GSE519Project1-main 2/train.csv")
+```
+
+```{r}
+sapply(Housing, class)
+```
+
+```{r}
+library(glmnet)
+
+df <- Housing
+
+# 1) Keep only rows with SalePrice
+df <- df[!is.na(df$SalePrice), ]
+
+# 2) Response first, from the same rows you’ll use for X
+y <- log(df$SalePrice)
+
+# 3) Predictors only (no LHS anywhere downstream)
+X <- subset(df, select = -SalePrice)
+
+# 4) Normalize types + handle NAs *before* terms expansion
+char_cols <- vapply(X, is.character, logical(1))
+X[char_cols] <- lapply(X[char_cols], function(x) {
+  x[is.na(x) | x == ""] <- "Missing"
+  factor(x, exclude = NULL)              # keep "Missing" as a real level
+})
+
+num_cols <- vapply(X, is.numeric, logical(1))
+for (nm in names(X)[num_cols]) {
+  v <- X[[nm]]
+  if (anyNA(v)) {
+    v[is.na(v)] <- median(v, na.rm = TRUE)
+    X[[nm]] <- v
+  }
+}
+
+# 5) Drop any factors that collapsed to a single level (contrasts can't be built)
+is_bad <- vapply(X, function(z) is.factor(z) && nlevels(z) < 2, logical(1))
+X <- X[ , !is_bad, drop = FALSE]
+
+# 6) Build a terms object and model.frame to *freeze* levels for model.matrix
+tf <- terms(~ ., data = X)  # no LHS here
+mf <- model.frame(tf, data = X, na.action = na.pass)
+
+# 7) Finally get the model matrix (no intercept; glmnet will handle it)
+x <- model.matrix(tf, data = mf, na.action = na.pass)[, -1, drop = FALSE]
+
+# 8) Align X and y (paranoid check)
+keep <- complete.cases(x) & !is.na(y)
+x <- x[keep, , drop = FALSE]
+y <- y[keep]
+stopifnot(nrow(x) == length(y))
+if (var(y) == 0) stop("y has zero variance after filtering")
+
+# 9) Fit
+set.seed(1)
+cvfit <- cv.glmnet(x, y, family = "gaussian", alpha = 1)
+cvfit$cvm[cvfit$lambda == cvfit$lambda.min]
+
+
+```
+
+
+```{r}
+# --- Coefficients sorted by magnitude (lambda.min) ---
+cmat <- as.matrix(coef(cvfit, s = "lambda.min"))  # sparse -> dense
+coef_tbl <- data.frame(
+  term = rownames(cmat),
+  estimate = as.numeric(cmat[, 1]),
+  row.names = NULL,
+  check.names = FALSE
+)
+
+# drop intercept, compute |beta|, sort descending
+coef_tbl <- subset(coef_tbl, term != "(Intercept)")
+coef_tbl$abs_estimate <- abs(coef_tbl$estimate)
+coef_tbl <- coef_tbl[order(-coef_tbl$abs_estimate), ]
+
+# view results
+head(coef_tbl, 25)      # top 25 by |beta|
+# Or the full table:
+# coef_tbl
+
+```
+
+```{r}
+library(glmnet)
+
+set.seed(42)
+K <- 5
+foldid <- sample(rep(1:K, length.out = length(y)))  # reuse folds across alphas
+
+alpha_seq <- seq(0, 1, by = 0.1)
+
+cv_list <- lapply(alpha_seq, function(a) {
+  cv.glmnet(x, y,
+            family = "gaussian",
+            alpha = a,
+            foldid = foldid,     # ensures fair comparison
+            standardize = TRUE)
+})
+
+cvm_min <- sapply(cv_list, function(m) min(m$cvm))
+best_idx <- which.min(cvm_min)
+best_alpha <- alpha_seq[best_idx]
+best_cvfit <- cv_list[[best_idx]]
+
+best_alpha
+best_cvfit$lambda.min
+min(best_cvfit$cvm)
+
+```
+
+
+```{r}
+library(glmnet)
+
+lam <- 0.04959683  # from your output
+
+# Fit lasso at that lambda
+lasso_fit <- glmnet(x, y, family = "gaussian", alpha = 1, lambda = lam, standardize = TRUE)
+
+# Coefficients sorted by |beta|
+cmat <- as.matrix(coef(lasso_fit))  # single lambda
+coef_tbl <- data.frame(
+  term = rownames(cmat),
+  estimate = as.numeric(cmat[, 1]),
+  row.names = NULL,
+  check.names = FALSE
+)
+
+coef_tbl <- subset(coef_tbl, term != "(Intercept)")
+coef_tbl$abs_estimate <- abs(coef_tbl$estimate)
+coef_tbl <- coef_tbl[order(-coef_tbl$abs_estimate), , drop = FALSE]
+
+head(coef_tbl, 25)   # top 25
+# View full table:
+# coef_tbl
+
+```
+
+```{r}
+# 1) Grab nonzero feature names from your lasso (alpha=1) fit at your chosen lambda
+nz <- as.matrix(coef(lasso_fit))           # if you used cv_lasso, do coef(cv_lasso, s="lambda.min")
+nz_terms <- setdiff(rownames(nz)[nz[,1] != 0], "(Intercept)")
+
+# 2) Reduce to those columns from the model matrix you already built (x)
+X_red <- x[, nz_terms, drop = FALSE]
+
+# 3) OLS on the reduced set
+ols <- lm(y ~ ., data = as.data.frame(X_red))
+
+# 4) Look at results
+summary(ols)
+```
+
+```{r}
+library(car)
+vif(ols)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
