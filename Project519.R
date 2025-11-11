@@ -63,3 +63,9 @@ split <- sample(1:nrow(myData_with_dummies), 0.8*nrow(myData_with_dummies))
 train <- myData_with_dummies[split, ]
 test  <- myData_with_dummies[-split, ]
 
+train_y <- train$SalePrice
+train_x <- train[, !(names(train) == "SalePrice")]
+
+# Omit SalePrice entirely from the test set
+test_x <- test[, !(names(test) == "SalePrice")]
+
