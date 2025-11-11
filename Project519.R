@@ -5,6 +5,28 @@ setwd("/Users/danielkwong/Documents/GitHub/GSE519Project")
 #Import data
 myData <- read.csv("train.csv")
 
+<<<<<<< Updated upstream
+=======
+<<<<<<< HEAD
+names(myData)
+
+
+#Select only important variables
+myDataSelect <- myData[, c(
+  "MSSubClass", "MSZoning", "LotFrontage", "LotArea", "LotShape", "LandContour",
+  "LotConfig", "LandSlope", "Neighborhood", "Condition1", "BldgType", "HouseStyle",
+  "OverallQual", "OverallCond", "YearBuilt", "YearRemodAdd", "RoofStyle", "Exterior1st",
+  "Exterior2nd", "MasVnrType", "MasVnrArea", "ExterQual", "ExterCond", "Foundation",
+  "BsmtQual", "BsmtCond", "BsmtExposure", "BsmtFinType1", "BsmtFinSF1", "BsmtFinType2",
+  "BsmtFinSF2", "BsmtUnfSF", "TotalBsmtSF", "HeatingQC", "CentralAir", "Electrical",
+  "X1stFlrSF", "X2ndFlrSF", "LowQualFinSF", "GrLivArea", "BsmtFullBath", "BsmtHalfBath",
+  "FullBath", "HalfBath", "BedroomAbvGr", "KitchenQual", "TotRmsAbvGrd", "Functional",
+  "Fireplaces", "FireplaceQu", "GarageType", "GarageYrBlt", "GarageFinish", "GarageCars",
+  "GarageArea", "GarageQual", "GarageCond", "PavedDrive", "WoodDeckSF", "OpenPorchSF",
+  "EnclosedPorch", "X3SsnPorch", "ScreenPorch", "PoolArea", "MoSold", "YrSold"
+)]
+=======
+>>>>>>> Stashed changes
 desired <- c(
   "MSSubClass","MSZoning","LotFrontage","LotArea","LotShape","LandContour","LotConfig",
   "LandSlope","Neighborhood","Condition1","BldgType","HouseStyle","OverallQual",
@@ -31,12 +53,19 @@ if (length(missing)) {
 new_data <- myData[, keep, drop = FALSE]
 
 write.csv(new_data, "selected_columns.csv", row.names = FALSE)
+<<<<<<< Updated upstream
+=======
+>>>>>>> d6a45cd7bad010de0d42a381bb8ba163279ef7ce
+>>>>>>> Stashed changes
 
 
 # Rename columns that start with numbers
-names(myData)[names(myData) == "1stFlrSF"] <- "X1stFlrSF"
-names(myData)[names(myData) == "2ndFlrSF"] <- "X2ndFlrSF"
-names(myData)[names(myData) == "3SsnPorch"] <- "X3SsnPorch"
+names(myDataSelect)[names(myDataSelect) == "1stFlrSF"] <- "X1stFlrSF"
+names(myDataSelect)[names(myDataSelect) == "2ndFlrSF"] <- "X2ndFlrSF"
+names(myDataSelect)[names(myDataSelect) == "3SsnPorch"] <- "X3SsnPorch"
+
+#Check which variables are categorical
+str(myDataSelect)
 
 #Convert categorical variables into dummy variables
 install.packages("fastDummies")
@@ -49,7 +78,27 @@ cat_vars <- c("MSZoning", "LotShape", "LandContour", "LotConfig", "LandSlope", "
               "Electrical", "KitchenQual", "Functional", "FireplaceQu", "GarageType", 
               "GarageFinish", "GarageQual", "GarageCond", "PavedDrive")
 
-myData[cat_vars] <- lapply(myData[cat_vars], as.factor)
+myDataSelect[cat_vars] <- lapply(myDataSelect[cat_vars], as.factor)
 
+myData_with_dummies <- dummy_cols(myDataSelect, select_columns = cat_vars, remove_selected_columns = TRUE)
+
+#Drop ID column
+myData_with_dummies <- myData_with_dummies[ , !(names(myData_with_dummies) == "Id")]
+
+
+#Split data set into test and training sets
+set.seed(42)
+split <- sample(1:nrow(myData_with_dummies), 0.8*nrow(myData_with_dummies))
+
+train <- myData_with_dummies[split, ]
+test  <- myData_with_dummies[-split, ]
+
+
+<<<<<<< HEAD
+=======
 myData_with_dummies <- dummy_cols(myData, select_columns = cat_vars, remove_selected_columns = TRUE)
 
+<<<<<<< Updated upstream
+=======
+>>>>>>> d6a45cd7bad010de0d42a381bb8ba163279ef7ce
+>>>>>>> Stashed changes
