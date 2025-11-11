@@ -30,12 +30,12 @@ write.csv(new_data, "selected_columns.csv", row.names = FALSE)
 
 
 # Rename columns that start with numbers
-names(myDataSelect)[names(myDataSelect) == "1stFlrSF"] <- "X1stFlrSF"
-names(myDataSelect)[names(myDataSelect) == "2ndFlrSF"] <- "X2ndFlrSF"
-names(myDataSelect)[names(myDataSelect) == "3SsnPorch"] <- "X3SsnPorch"
+names(new_data)[names(new_data) == "1stFlrSF"] <- "X1stFlrSF"
+names(new_data)[names(new_data) == "2ndFlrSF"] <- "X2ndFlrSF"
+names(new_data)[names(new_data) == "3SsnPorch"] <- "X3SsnPorch"
 
 #Check which variables are categorical
-str(myDataSelect)
+str(new_data)
 
 #Convert categorical variables into dummy variables
 install.packages("fastDummies")
@@ -48,9 +48,9 @@ cat_vars <- c("MSZoning", "LotShape", "LandContour", "LotConfig", "LandSlope", "
               "Electrical", "KitchenQual", "Functional", "FireplaceQu", "GarageType", 
               "GarageFinish", "GarageQual", "GarageCond", "PavedDrive")
 
-myDataSelect[cat_vars] <- lapply(myDataSelect[cat_vars], as.factor)
+new_data[cat_vars] <- lapply(new_data[cat_vars], as.factor)
 
-myData_with_dummies <- dummy_cols(myDataSelect, select_columns = cat_vars, remove_selected_columns = TRUE)
+myData_with_dummies <- dummy_cols(new_data, select_columns = cat_vars, remove_selected_columns = TRUE)
 
 #Drop ID column
 myData_with_dummies <- myData_with_dummies[ , !(names(myData_with_dummies) == "Id")]
